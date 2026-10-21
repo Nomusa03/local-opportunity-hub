@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "351769124734",
+    "project_id": "local-opportunity-hub",
+    "storage_bucket": "local-opportunity-hub.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:351769124734:android:af9b473a43001670b41d2f",
+        "android_client_info": {
+          "package_name": "com.example.ubuntu_connect"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAz92QxS9-92iXDWu-R5dh3sU3KkDrRNRQ"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
