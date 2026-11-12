@@ -12,7 +12,7 @@ class AdminDashboard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Administrator Dashboard'),
+        title: const Text('Employer Hub'),
         backgroundColor: Colors.blue,
         foregroundColor: Colors.white,
       ),
@@ -60,6 +60,7 @@ class AdminDashboard extends StatelessWidget {
             ),
 
             const SizedBox(height: 15),
+
             ElevatedButton.icon(
               onPressed: () {
                 Navigator.push(

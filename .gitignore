@@ -46,3 +46,12 @@ app.*.map.json
 
 # Widget Preview related
 .widget_preview/
+
+# Environment and private credentials
+.env
+.env.*
+!.env.example
+*service-account*.json
+*service_account*.json
+*.jks
+*.keystore

@@ -26,6 +26,7 @@ class _EditOpportunityScreenState extends State<EditOpportunityScreen> {
 
   late String _selectedCategory;
   late String _selectedField;
+  DateTime? _closingDate;
 
   final List<String> _categories = [
     'Jobs',
@@ -37,6 +38,13 @@ class _EditOpportunityScreenState extends State<EditOpportunityScreen> {
   @override
   void initState() {
     super.initState();
+    final savedClosingDate = widget.opportunityData['closingDate'];
+
+    if (savedClosingDate is Timestamp) {
+      _closingDate = savedClosingDate.toDate();
+    } else if (savedClosingDate is DateTime) {
+      _closingDate = savedClosingDate;
+    }
 
     _titleController = TextEditingController(
       text: widget.opportunityData['title'] ?? '',
@@ -108,6 +116,9 @@ class _EditOpportunityScreenState extends State<EditOpportunityScreen> {
             'field': _selectedField,
             'description': _descriptionController.text.trim(),
             'applicationUrl': _applicationUrlController.text.trim(),
+            'closingDate': _closingDate == null
+                ? null
+                : Timestamp.fromDate(_closingDate!),
             'updatedAt': FieldValue.serverTimestamp(),
           });
 
@@ -289,6 +300,31 @@ class _EditOpportunityScreenState extends State<EditOpportunityScreen> {
 
                   return null;
                 },
+              ),
+
+              const SizedBox(height: 15),
+
+              OutlinedButton.icon(
+                onPressed: () async {
+                  final selectedDate = await showDatePicker(
+                    context: context,
+                    initialDate: _closingDate ?? DateTime.now(),
+                    firstDate: DateTime(2000),
+                    lastDate: DateTime(2035),
+                  );
+
+                  if (selectedDate != null) {
+                    setState(() {
+                      _closingDate = selectedDate;
+                    });
+                  }
+                },
+                icon: const Icon(Icons.calendar_today),
+                label: Text(
+                  _closingDate == null
+                      ? 'Select Closing Date'
+                      : 'Closing Date: ${_closingDate!.day}/${_closingDate!.month}/${_closingDate!.year}',
+                ),
               ),
               const SizedBox(height: 25),
 

@@ -3,6 +3,8 @@ import 'package:url_launcher/url_launcher.dart';
 
 import 'main.dart' show saveOpportunityToFirestore;
 
+import 'package:cloud_firestore/cloud_firestore.dart';
+
 class FirebaseOpportunityDetails extends StatelessWidget {
   final String opportunityId;
   final Map<String, dynamic> opportunity;
@@ -15,6 +17,15 @@ class FirebaseOpportunityDetails extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final closingDateValue = opportunity['closingDate'];
+
+    DateTime? closingDate;
+
+    if (closingDateValue is Timestamp) {
+      closingDate = closingDateValue.toDate();
+    } else if (closingDateValue is DateTime) {
+      closingDate = closingDateValue;
+    }
     return Scaffold(
       appBar: AppBar(title: const Text('Opportunity Details')),
 
@@ -41,11 +52,27 @@ class FirebaseOpportunityDetails extends StatelessWidget {
             ),
 
             // LOCATION
+            // LOCATION
             ListTile(
               leading: const Icon(Icons.location_on),
               title: const Text('Location'),
               subtitle: Text(opportunity['location'] ?? 'Not provided'),
             ),
+
+            // CLOSING DATE
+            ListTile(
+              leading: const Icon(Icons.calendar_today),
+              title: const Text('Application Closing Date'),
+              subtitle: Text(
+                closingDate == null
+                    ? 'Not specified'
+                    : '${closingDate.day.toString().padLeft(2, '0')}/'
+                          '${closingDate.month.toString().padLeft(2, '0')}/'
+                          '${closingDate.year}',
+              ),
+            ),
+
+            // CATEGORY
 
             // CATEGORY
             ListTile(

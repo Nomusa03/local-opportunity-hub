@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 
 import 'package:firebase_core/firebase_core.dart';
+
+import 'firebase_options.dart';
+
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -36,7 +39,7 @@ String userSpecialisation = '';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  await Firebase.initializeApp();
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
 
   final messaging = FirebaseMessaging.instance;
 
@@ -52,14 +55,44 @@ Future<void> main() async {
 
     // Get an FCM token.
     // For Flutter web, provide your Web Push public VAPID key.
+
     final String? fcmToken = await messaging.getToken();
-    if (fcmToken != null) {
-      debugPrint('FCM TOKEN START');
-      debugPrint(fcmToken);
-      debugPrint('FCM TOKEN END');
+
+    final User? currentUser = FirebaseAuth.instance.currentUser;
+
+    if (fcmToken != null && currentUser != null) {
+      await FirebaseFirestore.instance
+          .collection('users')
+          .doc(currentUser.uid)
+          .set({
+            'fcmToken': fcmToken,
+            'fcmTokenUpdatedAt': FieldValue.serverTimestamp(),
+          }, SetOptions(merge: true));
+
+      debugPrint('FCM token saved for signed-in user.');
     } else {
-      debugPrint('FCM token is not available yet');
+      debugPrint('FCM token not saved: token or signed-in user is missing.');
     }
+
+    FirebaseMessaging.instance.onTokenRefresh.listen((newToken) async {
+      final user = FirebaseAuth.instance.currentUser;
+
+      if (user == null) {
+        debugPrint('Token refreshed, but no user is signed in.');
+        return;
+      }
+
+      try {
+        await FirebaseFirestore.instance.collection('users').doc(user.uid).set({
+          'fcmToken': newToken,
+          'fcmTokenUpdatedAt': FieldValue.serverTimestamp(),
+        }, SetOptions(merge: true));
+
+        debugPrint('Refreshed FCM token saved.');
+      } catch (e) {
+        debugPrint('Failed to save refreshed FCM token: $e');
+      }
+    });
 
     // Handle messages while the app is in the foreground.
     FirebaseMessaging.onMessage.listen((RemoteMessage message) {
@@ -285,18 +318,6 @@ class HomeScreen extends StatelessWidget {
               ),
 
               const SizedBox(height: 24),
-
-              TextField(
-                decoration: InputDecoration(
-                  hintText: 'Search opportunities...',
-                  prefixIcon: const Icon(Icons.search),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(15),
-                  ),
-                ),
-              ),
-
-              const SizedBox(height: 30),
 
               const Text(
                 'Categories',
@@ -1791,7 +1812,10 @@ class _SignUpScreenState extends State<SignUpScreen> {
   final TextEditingController nameController = TextEditingController();
   final TextEditingController emailController = TextEditingController();
   final TextEditingController passwordController = TextEditingController();
-
+  final TextEditingController confirmPasswordController =
+      TextEditingController();
+  bool _isPasswordVisible = false;
+  bool _isConfirmPasswordVisible = false;
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -1848,22 +1872,47 @@ class _SignUpScreenState extends State<SignUpScreen> {
 
             TextField(
               controller: passwordController,
-              obscureText: true,
+              obscureText: !_isPasswordVisible,
               decoration: InputDecoration(
                 labelText: 'Password',
-                border: OutlineInputBorder(),
-                prefixIcon: Icon(Icons.lock_outline),
+                border: const OutlineInputBorder(),
+                prefixIcon: const Icon(Icons.lock_outline),
+                suffixIcon: IconButton(
+                  icon: Icon(
+                    _isPasswordVisible
+                        ? Icons.visibility
+                        : Icons.visibility_off,
+                  ),
+                  onPressed: () {
+                    setState(() {
+                      _isPasswordVisible = !_isPasswordVisible;
+                    });
+                  },
+                ),
               ),
             ),
 
             const SizedBox(height: 15),
 
-            const TextField(
-              obscureText: true,
+            TextField(
+              controller: confirmPasswordController,
+              obscureText: !_isConfirmPasswordVisible,
               decoration: InputDecoration(
                 labelText: 'Confirm Password',
-                border: OutlineInputBorder(),
-                prefixIcon: Icon(Icons.lock_outline),
+                border: const OutlineInputBorder(),
+                prefixIcon: const Icon(Icons.lock_outline),
+                suffixIcon: IconButton(
+                  icon: Icon(
+                    _isConfirmPasswordVisible
+                        ? Icons.visibility
+                        : Icons.visibility_off,
+                  ),
+                  onPressed: () {
+                    setState(() {
+                      _isConfirmPasswordVisible = !_isConfirmPasswordVisible;
+                    });
+                  },
+                ),
               ),
             ),
 
@@ -1871,6 +1920,17 @@ class _SignUpScreenState extends State<SignUpScreen> {
 
             ElevatedButton(
               onPressed: () async {
+                if (passwordController.text.trim() !=
+                    confirmPasswordController.text.trim()) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text(
+                        'Passwords do not match. Please try again.',
+                      ),
+                    ),
+                  );
+                  return;
+                }
                 try {
                   await FirebaseAuth.instance.createUserWithEmailAndPassword(
                     email: emailController.text.trim(),
@@ -1929,6 +1989,7 @@ class LoginScreen extends StatefulWidget {
 class _LoginScreenState extends State<LoginScreen> {
   final TextEditingController emailController = TextEditingController();
   final TextEditingController passwordController = TextEditingController();
+  bool _isPasswordVisible = false;
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -1974,11 +2035,23 @@ class _LoginScreenState extends State<LoginScreen> {
 
             TextField(
               controller: passwordController,
-              obscureText: true,
-              decoration: const InputDecoration(
+              obscureText: !_isPasswordVisible,
+              decoration: InputDecoration(
                 labelText: 'Password',
-                border: OutlineInputBorder(),
-                prefixIcon: Icon(Icons.lock_outline),
+                border: const OutlineInputBorder(),
+                prefixIcon: const Icon(Icons.lock_outline),
+                suffixIcon: IconButton(
+                  icon: Icon(
+                    _isPasswordVisible
+                        ? Icons.visibility
+                        : Icons.visibility_off,
+                  ),
+                  onPressed: () {
+                    setState(() {
+                      _isPasswordVisible = !_isPasswordVisible;
+                    });
+                  },
+                ),
               ),
             ),
 
@@ -2656,7 +2729,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 _profileItem(
                   icon: Icons.badge_outlined,
                   title: 'Role',
-                  value: isAdmin ? 'Administrator' : 'Applicant',
+                  value: isAdmin ? 'Employer' : 'Applicant',
                 ),
 
                 if (!isAdmin) ...[
@@ -2748,7 +2821,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     label: const Padding(
                       padding: EdgeInsets.all(14),
                       child: Text(
-                        'Administrator Dashboard',
+                        'Employer Hub',
                         style: TextStyle(fontSize: 16),
                       ),
                     ),

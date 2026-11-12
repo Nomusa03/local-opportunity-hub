@@ -19,6 +19,7 @@ class _AddOpportunityScreenState extends State<AddOpportunityScreen> {
 
   String _selectedCategory = 'Jobs';
   String _selectedField = 'ICT';
+  DateTime? _closingDate;
 
   @override
   void dispose() {
@@ -172,11 +173,9 @@ class _AddOpportunityScreenState extends State<AddOpportunityScreen> {
                   prefixIcon: Icon(Icons.link),
                   border: OutlineInputBorder(),
                 ),
-
                 validator: (value) {
-                  // Allow opportunities without an application URL.
                   if (value == null || value.trim().isEmpty) {
-                    return null;
+                    return 'Please enter the official application URL';
                   }
 
                   // Validate the URL only when one is provided.
@@ -191,11 +190,45 @@ class _AddOpportunityScreenState extends State<AddOpportunityScreen> {
                   return null;
                 },
               ),
+
+              const SizedBox(height: 15),
+
+              OutlinedButton.icon(
+                onPressed: () async {
+                  final selectedDate = await showDatePicker(
+                    context: context,
+                    initialDate: _closingDate ?? DateTime.now(),
+                    firstDate: DateTime.now(),
+                    lastDate: DateTime(2035),
+                  );
+
+                  if (selectedDate != null) {
+                    setState(() {
+                      _closingDate = selectedDate;
+                    });
+                  }
+                },
+                icon: const Icon(Icons.calendar_today),
+                label: Text(
+                  _closingDate == null
+                      ? 'Select Closing Date'
+                      : 'Closing Date: ${_closingDate!.day}/${_closingDate!.month}/${_closingDate!.year}',
+                ),
+              ),
               const SizedBox(height: 25),
 
               ElevatedButton.icon(
                 onPressed: () async {
                   if (!_formKey.currentState!.validate()) {
+                    return;
+                  }
+
+                  if (_closingDate == null) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Please select a closing date'),
+                      ),
+                    );
                     return;
                   }
 
@@ -211,6 +244,7 @@ class _AddOpportunityScreenState extends State<AddOpportunityScreen> {
                           'description': _descriptionController.text.trim(),
                           'applicationUrl': _applicationUrlController.text
                               .trim(),
+                          'closingDate': Timestamp.fromDate(_closingDate!),
                           'createdAt': FieldValue.serverTimestamp(),
                         });
 
@@ -230,6 +264,7 @@ class _AddOpportunityScreenState extends State<AddOpportunityScreen> {
                     _applicationUrlController.clear();
 
                     setState(() {
+                      _closingDate = null;
                       _selectedCategory = 'Jobs';
                       _selectedField = 'ICT';
                     });
